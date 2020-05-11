@@ -11,7 +11,7 @@ class Encoder(nn.Module):
         self.cv4 = nn.Conv2d(128, 256, kernel_size=4, stride=2)
         self.fc = nn.Linear(256*2*2, embed_dim)
 
-    def forward(self):
+    def forward(self, obs):
         hidden = F.relu(self.cv1(obs))
         hidden = F.relu(self.cv2(hidden))
         hidden = F.relu(self.cv3(hidden))
