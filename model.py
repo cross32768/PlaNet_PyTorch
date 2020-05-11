@@ -3,13 +3,12 @@ from torch.nn import functional as F
 
 
 class Encoder(nn.Module):
-    def __init__(self, embed_dim):
+    def __init__(self):
         super(Encoder, self).__init__()
         self.cv1 = nn.Conv2d(3, 32, kernel_size=4, stride=2)
         self.cv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.cv3 = nn.Conv2d(64, 128, kernel_size=4, stride=2)
         self.cv4 = nn.Conv2d(128, 256, kernel_size=4, stride=2)
-        self.fc = nn.Linear(256*2*2, embed_dim)
 
     def forward(self, obs):
         hidden = F.relu(self.cv1(obs))
@@ -17,5 +16,22 @@ class Encoder(nn.Module):
         hidden = F.relu(self.cv3(hidden))
         hidden = F.relu(self.cv4(hidden))
         hidden = hidden.view(hidden.size(0), -1)
-        embedded_obs = self.fc(hidden)
-        return embedded_obs
+        return hidden
+
+
+class ObservationModel(nn.Module):
+    def __init__(self, hidden_dim, state_dim):
+        super(ObservationModel, self).__init__()
+        self.fc = nn.Linear(hidden_dim + state_dim, 1024)
+        self.dc1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
+        self.dc2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
+        self.dc3 = nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2)
+        self.dc4 = nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2)
+
+    def forward(self, rnn_hidden, state):
+        hidden = self.fc(torch.cat([rnn_hidden, state], dim=1))
+        hidden = hidden.view(hidden.size(0), 1024, 1, 1)
+        hidden = F.relu(self.dc1(hidden))
+        hidden = F.relu(self.dc2(hidden))
+        hidden = F.relu(self.dc3(hidden))
+        return recon_obs
