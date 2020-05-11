@@ -17,4 +17,5 @@ class Encoder(nn.Module):
         hidden = F.relu(self.cv3(hidden))
         hidden = F.relu(self.cv4(hidden))
         hidden = hidden.view(hidden.size(0), -1)
-        return self.fc(hidden)
+        embedded_obs = self.fc(hidden)
+        return embedded_obs
