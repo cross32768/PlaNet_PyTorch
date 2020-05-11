@@ -23,8 +23,7 @@ class GymWrapper(object):
     @property
     def action_space(self):
         action_spec = self._env.action_spec()
-        return gym.spaces.Box(
-            action_spec.minimum, action_spec.maximum, dtype=np.float32)
+        return gym.spaces.Box(action_spec.minimum, action_spec.maximum, dtype=np.float32)
 
     def step(self, action):
         time_step = self._env.step(action)
@@ -53,3 +52,21 @@ class GymWrapper(object):
             return self._viewer.isopen
         else:
             raise NotImplementedError
+
+
+class RepeatAction(gym.Wrapper):
+    def __init__(self, env, skip=4):
+        gym.Wrapper.__init__(self, env)
+        self._skip = skip
+
+    def reset(self):
+        return self.env.reset()
+
+    def step(self, action):
+        total_reward = 0.0
+        for i in range(self._skip):
+            obs, reward, done, info = self.env.step(action)
+            total_reward += reward
+            if done:
+                break
+        return obs, total_reward, done, info
