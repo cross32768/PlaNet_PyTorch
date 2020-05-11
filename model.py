@@ -20,9 +20,9 @@ class Encoder(nn.Module):
 
 
 class ObservationModel(nn.Module):
-    def __init__(self, hidden_dim, state_dim):
+    def __init__(self, rnn_hidden_dim, state_dim):
         super(ObservationModel, self).__init__()
-        self.fc = nn.Linear(hidden_dim + state_dim, 1024)
+        self.fc = nn.Linear(rnn_hidden_dim + state_dim, 1024)
         self.dc1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
         self.dc2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
         self.dc3 = nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2)
@@ -34,4 +34,17 @@ class ObservationModel(nn.Module):
         hidden = F.relu(self.dc1(hidden))
         hidden = F.relu(self.dc2(hidden))
         hidden = F.relu(self.dc3(hidden))
+        recon_obs = self.dc4(hidden)
         return recon_obs
+
+
+class RewardModel(nn.Module):
+    def __init__(self, rnn_hidden_dim, state_dim, hidden_dim=200):
+        super(RewardModel, self).__init__()
+        self.fc1 = nn.Linear(rnn_hidden_dim + state_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, 1)
+    
+    def forward(self, rnn_hidden, state):
+        hidden = F.relu(self.fc1(torch.cat([rnn_hidden, state], dim=1)))
+        reward = self.fc2(hidden)
+        return reward
