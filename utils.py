@@ -60,3 +60,10 @@ class ReplayBuffer(object):
 
     def __len__(self):
         return self.capacity if self.is_filled else self.index
+
+
+# Should I add uniform noise?
+def preprocess_obs(obs, bit_depth=5):
+    reduced_obs = np.floor(obs / 2 ** (8 - bit_depth))
+    normalized_obs = reduced_obs / 2**bit_depth - 0.5
+    return normalized_obs
