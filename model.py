@@ -20,33 +20,72 @@ class Encoder(nn.Module):
 
 
 class ObservationModel(nn.Module):
-    def __init__(self, rnn_hidden_dim, state_dim):
+    def __init__(self, state_dim, rnn_hidden_dim):
         super(ObservationModel, self).__init__()
-        self.fc = nn.Linear(rnn_hidden_dim + state_dim, 1024)
+        self.fc = nn.Linear(state_dim + rnn_hidden_dim, 1024)
         self.dc1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
         self.dc2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
         self.dc3 = nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2)
         self.dc4 = nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2)
 
-    def forward(self, rnn_hidden, state):
-        hidden = self.fc(torch.cat([rnn_hidden, state], dim=1))
+    def forward(self, state, rnn_hidden):
+        hidden = self.fc(torch.cat([state, rnn_hidden], dim=1))
         hidden = hidden.view(hidden.size(0), 1024, 1, 1)
         hidden = F.relu(self.dc1(hidden))
         hidden = F.relu(self.dc2(hidden))
         hidden = F.relu(self.dc3(hidden))
-        recon_obs = self.dc4(hidden)
-        return recon_obs
+        obs = self.dc4(hidden)
+        return obs
 
 
 class RewardModel(nn.Module):
-    def __init__(self, rnn_hidden_dim, state_dim, hidden_dim=200):
+    def __init__(self, state_dim, rnn_hidden_dim, hidden_dim=200):
         super(RewardModel, self).__init__()
-        self.fc1 = nn.Linear(rnn_hidden_dim + state_dim, hidden_dim)
+        self.fc1 = nn.Linear(state_dim + rnn_hidden_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, 1)
     
-    def forward(self, rnn_hidden, state):
-        hidden = F.relu(self.fc1(torch.cat([rnn_hidden, state], dim=1)))
+    def forward(self, state, rnn_hidden):
+        hidden = F.relu(self.fc1(torch.cat([state, rnn_hidden], dim=1)))
         hidden = F.relu(self.fc2(hidden))
         reward = self.fc3(hidden)
         return reward
+
+
+class RecurrentStateSpaceModel(nn.Module):
+    def __init__(self, state_dim, action_dim, rnn_hidden_dim, hidden_dim=200, min_stddev=0.1):
+        super(RecurrentStateSpaceModel, self).__init__()
+        self.fc_state_action = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.fc_rnn_hidden = nn.Linear(rnn_hidden_dim, hidden_dim)
+        self.fc_next_state_mean_prior = nn.Linear(hidden_dim, state_dim)
+        self.fc_next_state_stddev_prior = nn.Linear(hidden_dim, state_dim)
+        self.fc_rnn_hidden_next_embedded_obs = nn.Linear(rnn_hidden_dim + 1024, hidden_dim)
+        self.fc_next_state_mean_posterior = nn.Linear(hidden_dim, state_dim)
+        self.fc_next_state_stddev_posterior = nn.Linear(hidden_dim, state_dim)
+        self.rnn = nn.GRUCell(hidden_dim, rnn_hidden_dim)
+        self._min_stddev = min_stddev
+
+    def forward(self, state, action, rnn_hidden, embedded_next_obs=None):
+        next_state_prior, rnn_hidden = self._prior(state, action, rnn_hidden)
+        if embedded_obs is None:
+            return next_state_prior, None, rnn_hidden
+        next_state_posterior = self._posterior(rnn_hidden, embedded_next_obs)
+        return next_state_prior, next_state_posterior, rnn_hidden
+
+    def _prior(self, state, action, rnn_hidden):
+        hidden = F.elu(self.state_action(torch.cat([state, action], dim=1)))
+        rnn_hidden = self.rnn(hidden, rnn_hidden)
+        hidden = F.elu(self.fc_rnn_hidden(rnn_hidden))
+
+        mean = self.fc_next_state_mean_prior(hidden)
+        stddev = F.softplus(self.fc_next_state_stddev_prior(hidden))
+        stddev += self._min_stddev
+        return mean, stddev
+
+    def _posterior(self, rnn_hidden, embedded_next_obs):
+        hidden = F.elu(fc_rnn_hidden_next_embedded_obs(torch.cat([rnn_hidden, 
+                                                                  embedded_next_obs], dim=1)))
+        mean = self.fc_next_state_mean_posterior(hidden)
+        stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden))
+        stddev += self._min_stddev
+        return mean, stddev
