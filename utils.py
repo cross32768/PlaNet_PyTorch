@@ -67,6 +67,7 @@ class ReplayBuffer(object):
 def preprocess_obs(obs, bit_depth=5):
     reduced_obs = np.floor(obs / 2 ** (8 - bit_depth))
     normalized_obs = reduced_obs / 2**bit_depth - 0.5
+    normalized_obs += np.random.uniform(0.0, 1.0 / 2**bit_depth, normalized_obs.shape)
     return normalized_obs
 
 

@@ -45,7 +45,7 @@ class RewardModel(nn.Module):
         self.fc1 = nn.Linear(state_dim + rnn_hidden_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, 1)
-    
+
     def forward(self, state, rnn_hidden):
         hidden = F.relu(self.fc1(torch.cat([state, rnn_hidden], dim=1)))
         hidden = F.relu(self.fc2(hidden))
@@ -54,7 +54,8 @@ class RewardModel(nn.Module):
 
 
 class RecurrentStateSpaceModel(nn.Module):
-    def __init__(self, state_dim, action_dim, rnn_hidden_dim, hidden_dim=200, min_stddev=0.1):
+    def __init__(self, state_dim, action_dim, rnn_hidden_dim,
+                 hidden_dim=200, min_stddev=0.1):
         super(RecurrentStateSpaceModel, self).__init__()
         self.fc_state_action = nn.Linear(state_dim + action_dim, hidden_dim)
         self.fc_rnn_hidden = nn.Linear(rnn_hidden_dim, hidden_dim)
