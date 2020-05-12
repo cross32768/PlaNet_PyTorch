@@ -1,11 +1,11 @@
 ''' A simple OpenCV based viewer for dm_control images
     from https://github.com/zuoxingdong/dm2gym
 '''
-import cv2
 import uuid
+import cv2
 
 
-class OpenCVImageViewer():
+class OpenCVImageViewer:
     ''' A simple OpenCV highgui based dm_control image viewer
         This class is meant to be a drop-in replacement for
         `gym.envs.classic_control.rendering.SimpleImageViewer`

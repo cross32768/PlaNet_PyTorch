@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from torch.nn import functional as F
 
@@ -14,9 +15,8 @@ class Encoder(nn.Module):
         hidden = F.relu(self.cv1(obs))
         hidden = F.relu(self.cv2(hidden))
         hidden = F.relu(self.cv3(hidden))
-        hidden = F.relu(self.cv4(hidden))
-        hidden = hidden.view(hidden.size(0), -1)
-        return hidden
+        embedded_obs = F.relu(self.cv4(hidden)).view(hidden.size(0), -1)
+        return embedded_obs
 
 
 class ObservationModel(nn.Module):
@@ -67,25 +67,25 @@ class RecurrentStateSpaceModel(nn.Module):
 
     def forward(self, state, action, rnn_hidden, embedded_next_obs=None):
         next_state_prior, rnn_hidden = self._prior(state, action, rnn_hidden)
-        if embedded_obs is None:
+        if embedded_next_obs is None:
             return next_state_prior, None, rnn_hidden
         next_state_posterior = self._posterior(rnn_hidden, embedded_next_obs)
         return next_state_prior, next_state_posterior, rnn_hidden
 
     def _prior(self, state, action, rnn_hidden):
-        hidden = F.elu(self.state_action(torch.cat([state, action], dim=1)))
+        hidden = F.elu(self.fc_state_action(torch.cat([state, action], dim=1)))
         rnn_hidden = self.rnn(hidden, rnn_hidden)
         hidden = F.elu(self.fc_rnn_hidden(rnn_hidden))
 
         mean = self.fc_next_state_mean_prior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_prior(hidden))
         stddev += self._min_stddev
-        return mean, stddev
+        return {'mean': mean, 'stddev': stddev}, rnn_hidden
 
     def _posterior(self, rnn_hidden, embedded_next_obs):
-        hidden = F.elu(fc_rnn_hidden_next_embedded_obs(torch.cat([rnn_hidden, 
-                                                                  embedded_next_obs], dim=1)))
+        hidden = F.elu(self.fc_rnn_hidden_next_embedded_obs(
+            torch.cat([rnn_hidden, embedded_next_obs], dim=1)))
         mean = self.fc_next_state_mean_posterior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden))
         stddev += self._min_stddev
-        return mean, stddev
+        return {'mean': mean, 'stddev': stddev}
