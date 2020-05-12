@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.distributions import Normal
 
 
 class Encoder(nn.Module):
@@ -80,7 +81,7 @@ class RecurrentStateSpaceModel(nn.Module):
         mean = self.fc_next_state_mean_prior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_prior(hidden))
         stddev += self._min_stddev
-        return {'mean': mean, 'stddev': stddev}, rnn_hidden
+        return Normal(mean, stddev), rnn_hidden
 
     def _posterior(self, rnn_hidden, embedded_next_obs):
         hidden = F.elu(self.fc_rnn_hidden_next_embedded_obs(
@@ -88,4 +89,4 @@ class RecurrentStateSpaceModel(nn.Module):
         mean = self.fc_next_state_mean_posterior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden))
         stddev += self._min_stddev
-        return {'mean': mean, 'stddev': stddev}
+        return Normal(mean, stddev)
