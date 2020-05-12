@@ -42,9 +42,11 @@ class RewardModel(nn.Module):
     def __init__(self, rnn_hidden_dim, state_dim, hidden_dim=200):
         super(RewardModel, self).__init__()
         self.fc1 = nn.Linear(rnn_hidden_dim + state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, 1)
     
     def forward(self, rnn_hidden, state):
         hidden = F.relu(self.fc1(torch.cat([rnn_hidden, state], dim=1)))
-        reward = self.fc2(hidden)
+        hidden = F.relu(self.fc2(hidden))
+        reward = self.fc3(hidden)
         return reward
