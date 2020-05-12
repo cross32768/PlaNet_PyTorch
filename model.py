@@ -80,14 +80,12 @@ class RecurrentStateSpaceModel(nn.Module):
         hidden = F.elu(self.fc_rnn_hidden(rnn_hidden))
 
         mean = self.fc_next_state_mean_prior(hidden)
-        stddev = F.softplus(self.fc_next_state_stddev_prior(hidden))
-        stddev += self._min_stddev
+        stddev = F.softplus(self.fc_next_state_stddev_prior(hidden)) + self._min_stddev
         return Normal(mean, stddev), rnn_hidden
 
     def _posterior(self, rnn_hidden, embedded_next_obs):
         hidden = F.elu(self.fc_rnn_hidden_next_embedded_obs(
             torch.cat([rnn_hidden, embedded_next_obs], dim=1)))
         mean = self.fc_next_state_mean_posterior(hidden)
-        stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden))
-        stddev += self._min_stddev
+        stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden)) + self._min_stddev
         return Normal(mean, stddev)
