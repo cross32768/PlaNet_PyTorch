@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 class ReplayBuffer(object):
@@ -69,11 +68,3 @@ def preprocess_obs(obs, bit_depth=5):
     normalized_obs = reduced_obs / 2**bit_depth - 0.5
     normalized_obs += np.random.uniform(0.0, 1.0 / 2**bit_depth, normalized_obs.shape)
     return normalized_obs
-
-
-def transform_for_train(observations, actions, rewards, device):
-    observations = torch.FloatTensor(observations).transpose(3, 4).transpose(2, 3)
-    observations = observations.transpose(0, 1).to(device)
-    actions = torch.FloatTensor(actions).transpose(0, 1).to(device)
-    rewards = torch.FloatTensor(rewards).transpose(0, 1).to(device)
-    return observations, actions, rewards
