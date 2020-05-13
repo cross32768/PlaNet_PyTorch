@@ -57,6 +57,9 @@ class RecurrentStateSpaceModel(nn.Module):
     def __init__(self, state_dim, action_dim, rnn_hidden_dim,
                  hidden_dim=200, min_stddev=0.1):
         super(RecurrentStateSpaceModel, self).__init__()
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.rnn_hidden_dim = rnn_hidden_dim
         self.fc_state_action = nn.Linear(state_dim + action_dim, hidden_dim)
         self.fc_rnn_hidden = nn.Linear(rnn_hidden_dim, hidden_dim)
         self.fc_next_state_mean_prior = nn.Linear(hidden_dim, state_dim)
