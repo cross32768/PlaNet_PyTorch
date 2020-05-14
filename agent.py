@@ -23,7 +23,7 @@ class MPCAgent:
         obs = torch.FloatTensor(obs).transpose(1, 2).transpose(0, 1).unsqueeze(0)
         obs = obs.to(self.device)
         with torch.no_grad():
-            embedded_obs = encoder(obs)
+            embedded_obs = self.encoder(obs)
             state_posterior = self.rssm.posterior(self.prev_rnn_hidden, embedded_obs)
             action_dist = Normal(torch.zeros(self.horizon, self.rssm.action_dim),
                                  torch.ones(self.horizon, self.rssm.action_dim))
@@ -47,6 +47,7 @@ class MPCAgent:
                 action_dist = Normal(mean, stddev)
 
         action = mean[0]
-        _, self.prev_rnn_hidden = \
-            self.rssm.prior(state_posterior.sample(), action.unsqueeze(0), self.prev_rnn_hidden)
-        return action
+        with torch.no_grad():
+            _, self.prev_rnn_hidden = \
+                self.rssm.prior(state_posterior.sample(), action.unsqueeze(0), self.prev_rnn_hidden)
+        return action.cpu().numpy()
