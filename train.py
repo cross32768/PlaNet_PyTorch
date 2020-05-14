@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--N-candidates', type=int, default=1000)
     parser.add_argument('--N-top-candidates', type=int, default=100)
     parser.add_argument('--action-noise-var', type=float, default=0.3)
+    parser.add_argument('--test-interval', type=int, default=10)
     args = parser.parse_args()
 
     # prepare logging
@@ -87,7 +88,7 @@ def main():
     # main training loop
     for episode in range(args.all_episodes):
         # collect experience
-        s = time.time()
+        start = time.time()
         if episode >= args.seed_episodes:
             mpc_agent = MPCAgent(encoder, rssm, reward_model,
                                  args.horizon, args.N_iterations,
@@ -106,13 +107,13 @@ def main():
             replay_buffer.push(obs, action, reward, done)
             obs = next_obs
             total_reward += reward
-        writer.add_scalar('total reward', total_reward, episode)
+        writer.add_scalar('total reward (train)', total_reward, episode)
         print('episode [%4d/%4d] is collected. Total reward is %f' %
               (episode+1, args.all_episodes, total_reward))
-        print('elasped time for interaction: %.2fs' % (time.time() - s))
+        print('elasped time for interaction: %.2fs' % (time.time() - start))
 
         # update model parameters
-        s = time.time()
+        start = time.time()
         for update_step in range(args.collect_interval):
             observations, actions, rewards, _ = \
                 replay_buffer.sample(args.batch_size, args.chunk_length)
@@ -173,7 +174,26 @@ def main():
             writer.add_scalar('kl loss', kl_loss.item(), total_update_step)
             writer.add_scalar('obs loss', obs_loss.item(), total_update_step)
             writer.add_scalar('reward loss', reward_loss.item(), total_update_step)
-        print('elasped time for update: %.2fs' % (time.time() - s))
+        print('elasped time for update: %.2fs' % (time.time() - start))
+
+        # test to get score without exploration noise
+        if (episode + 1) % args.test_interval == 0:
+            start = time.time()
+            mpc_agent = MPCAgent(encoder, rssm, reward_model,
+                                 args.horizon, args.N_iterations,
+                                 args.N_candidates, args.N_top_candidates)
+
+            obs = env.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                action = mpc_agent(obs)
+                obs, reward, done, _ = env.step(action)
+                total_reward += reward
+            writer.add_scalar('total reward (test)', total_reward, episode)
+            print('Total test reward at episode [%4d/%4d] is %f' %
+                  (episode+1, args.all_episodes, total_reward))
+            print('elasped time for test: %.2fs' % (time.time() - start))
 
     torch.save(encoder.state_dict(), os.path.join(log_dir, 'encoder.pth'))
     torch.save(rssm.state_dict(), os.path.join(log_dir, 'rssm.pth'))
