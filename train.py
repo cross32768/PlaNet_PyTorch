@@ -1,11 +1,17 @@
 import argparse
+from datetime import datetime
+import json
+import os
+from pprint import pprint
 import torch
 from torch.distributions.kl import kl_divergence
 from torch.nn.functional import mse_loss
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 from dm_control import suite
 from dm_control.suite.wrappers import pixels
+from agent import MPCAgent
 from model import Encoder, RecurrentStateSpaceModel, ObservationModel, RewardModel
 from utils import ReplayBuffer, preprocess_obs
 from wrappers import GymWrapper, RepeatAction
@@ -13,6 +19,7 @@ from wrappers import GymWrapper, RepeatAction
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--log-dir', type=str, default='log')
     parser.add_argument('--domain-name', type=str, default='cheetah')
     parser.add_argument('--task-name', type=str, default='run')
     parser.add_argument('--action-repeat', type=int, default=4)
@@ -30,7 +37,20 @@ def main():
     parser.add_argument('--eps', type=float, default=1e-4)
     parser.add_argument('--clip-grad-norm', type=int, default=1000)
     parser.add_argument('--free-nats', type=int, default=3)
+    parser.add_argument('--horizon', type=int, default=12)
+    parser.add_argument('--N-iterations', type=int, default=10)
+    parser.add_argument('--N-candidates', type=int, default=1000)
+    parser.add_argument('--N-top-candidates', type=int, default=100)
     args = parser.parse_args()
+
+    # prepare logging
+    log_dir = os.path.join(args.log_dir, args.domain_name + '_' + args.task_name)
+    log_dir = os.path.join(log_dir, datetime.now().strftime('%Y%m%d_%H%M'))
+    os.makedirs(log_dir)
+    with open(os.path.join(log_dir, 'args.json'), 'w') as f:
+        json.dump(vars(args), f)
+    pprint(vars(args))
+    writer = SummaryWriter(log_dir=log_dir)
 
     # define env and apply wrappers
     env = suite.load(args.domain_name, args.task_name)
@@ -64,19 +84,25 @@ def main():
     # main training loop
     for episode in range(args.all_episodes):
         # collect experience
-        if episode < args.seed_episodes:
-            agent = env.action_space
-        else:
-            # TODO: use MPC Planner for this action choice
-            agent = env.action_space
+        if episode >= args.seed_episodes:
+            mpc_agent = MPCAgent(encoder, rssm, reward_model,
+                                 args.horizon, args.N_iterations,
+                                 args.N_candidates, args.N_top_candidates)
         obs = env.reset()
         done = False
+        total_reward = 0
         while not done:
-            action = agent.sample()
+            if episode < args.seed_episodes:
+                action = env.action_space.sample()
+            else:
+                action = mpc_agent(obs)
             next_obs, reward, done, _ = env.step(action)
             replay_buffer.push(obs, action, reward, done)
             obs = next_obs
-        print('episode [%4d/%4d] is collected.' % (episode+1, args.all_episodes))
+            total_reward += reward
+        writer.add_scalar('total reward', total_reward, episode)
+        print('episode [%4d/%4d] is collected. Total reward is %f' %
+              (episode+1, args.all_episodes, total_reward))
 
         # update model parameters
         for update_step in range(args.collect_interval):
@@ -92,7 +118,7 @@ def main():
 
             # embed observations with CNN
             embedded_observations = encoder(
-                observations.view(-1, 3, 64, 64)).view(args.chunk_length, args.batch_size, -1)
+                observations.reshape(-1, 3, 64, 64)).view(args.chunk_length, args.batch_size, -1)
 
             # prepare Tensor to maintain states sequence and rnn hidden states sequence
             states = torch.zeros(
@@ -131,8 +157,20 @@ def main():
             loss.backward()
             clip_grad_norm_(all_params, args.clip_grad_norm)
             optimizer.step()
+
             print('update_step: %3d loss: %.5f, kl_loss: %.5f, obs_loss: %.5f, reward_loss: % .5f' %
                   (update_step+1, loss.item(), kl_loss.item(), obs_loss.item(), reward_loss.item()))
+            total_update_step = episode * args.collect_interval + update_step
+            writer.add_scalar('overall loss', loss.item(), total_update_step)
+            writer.add_scalar('kl loss', kl_loss.item(), total_update_step)
+            writer.add_scalar('obs loss', obs_loss.item(), total_update_step)
+            writer.add_scalar('reward loss', reward_loss.item(), total_update_step)
+
+    torch.save(encoder.state_dict(), os.path.join(log_dir, 'encoder.pth'))
+    torch.save(rssm.state_dict(), os.path.join(log_dir, 'rssm.pth'))
+    torch.save(obs_model.state_dict(), os.path.join(log_dir, 'obs_model.pth'))
+    torch.save(reward_model.state_dict(), os.path.join(log_dir, 'reward_model.pth'))
+    writer.close()
 
 if __name__ == '__main__':
     main()
