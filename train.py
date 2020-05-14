@@ -107,7 +107,7 @@ def main():
             replay_buffer.push(obs, action, reward, done)
             obs = next_obs
             total_reward += reward
-        writer.add_scalar('total reward (train)', total_reward, episode)
+        writer.add_scalar('total reward at train', total_reward, episode)
         print('episode [%4d/%4d] is collected. Total reward is %f' %
               (episode+1, args.all_episodes, total_reward))
         print('elasped time for interaction: %.2fs' % (time.time() - start))
@@ -190,7 +190,7 @@ def main():
                 action = mpc_agent(obs)
                 obs, reward, done, _ = env.step(action)
                 total_reward += reward
-            writer.add_scalar('total reward (test)', total_reward, episode)
+            writer.add_scalar('total reward at test', total_reward, episode)
             print('Total test reward at episode [%4d/%4d] is %f' %
                   (episode+1, args.all_episodes, total_reward))
             print('elasped time for test: %.2fs' % (time.time() - start))
