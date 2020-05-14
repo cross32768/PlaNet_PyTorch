@@ -3,6 +3,8 @@ from datetime import datetime
 import json
 import os
 from pprint import pprint
+import time
+import numpy as np
 import torch
 from torch.distributions.kl import kl_divergence
 from torch.nn.functional import mse_loss
@@ -41,6 +43,7 @@ def main():
     parser.add_argument('--N-iterations', type=int, default=10)
     parser.add_argument('--N-candidates', type=int, default=1000)
     parser.add_argument('--N-top-candidates', type=int, default=100)
+    parser.add_argument('--action-noise-var', type=float, default=0.3)
     args = parser.parse_args()
 
     # prepare logging
@@ -84,6 +87,7 @@ def main():
     # main training loop
     for episode in range(args.all_episodes):
         # collect experience
+        s = time.time()
         if episode >= args.seed_episodes:
             mpc_agent = MPCAgent(encoder, rssm, reward_model,
                                  args.horizon, args.N_iterations,
@@ -96,6 +100,8 @@ def main():
                 action = env.action_space.sample()
             else:
                 action = mpc_agent(obs)
+                action += np.random.normal(0, np.sqrt(args.action_noise_var),
+                                           env.action_space.shape[0])
             next_obs, reward, done, _ = env.step(action)
             replay_buffer.push(obs, action, reward, done)
             obs = next_obs
@@ -103,8 +109,10 @@ def main():
         writer.add_scalar('total reward', total_reward, episode)
         print('episode [%4d/%4d] is collected. Total reward is %f' %
               (episode+1, args.all_episodes, total_reward))
+        print('elasped time for interaction: %.2fs' % (time.time() - s))
 
         # update model parameters
+        s = time.time()
         for update_step in range(args.collect_interval):
             observations, actions, rewards, _ = \
                 replay_buffer.sample(args.batch_size, args.chunk_length)
@@ -165,6 +173,7 @@ def main():
             writer.add_scalar('kl loss', kl_loss.item(), total_update_step)
             writer.add_scalar('obs loss', obs_loss.item(), total_update_step)
             writer.add_scalar('reward loss', reward_loss.item(), total_update_step)
+        print('elasped time for update: %.2fs' % (time.time() - s))
 
     torch.save(encoder.state_dict(), os.path.join(log_dir, 'encoder.pth'))
     torch.save(rssm.state_dict(), os.path.join(log_dir, 'rssm.pth'))
