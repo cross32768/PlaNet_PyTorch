@@ -14,6 +14,9 @@ from wrappers import GymWrapper, RepeatAction
 
 
 def save_video_as_gif(frames):
+    """
+    make video with given frames and save as "video_prediction.gif"
+    """
     plt.figure()
     patch = plt.imshow(frames[0])
     plt.axis('off')
@@ -75,31 +78,41 @@ def main():
                          args.N_candidates, args.N_top_candidates)
 
     # open-loop video prediction
+    # select starting point of open-loop prediction randomly
     starting_point = torch.randint(1000 // args.action_repeat - args.length, (1,)).item()
+    # interact in environment until starting point and charge context in cem_agent.rnn_hidden
     obs = env.reset()
     for _ in range(starting_point):
         action = cem_agent(obs)
         obs, _, _, _ = env.step(action)
 
+    # preprocess observatin and embed by encoder
     preprocessed_obs = preprocess_obs(obs)
-    preprocessed_obs = \
-        torch.FloatTensor(preprocessed_obs).transpose(1, 2).transpose(0, 1).unsqueeze(0)
-    preprocessed_obs = preprocessed_obs.to(device)
+    preprocessed_obs = torch.FloatTensor(preprocessed_obs).to(device)
+    preprocessed_obs = preprocessed_obs.transpose(1, 2).transpose(0, 1).unsqueeze(0)
     with torch.no_grad():
         embedded_obs = encoder(preprocessed_obs)
 
+    # compute state using embedded observation
+    # NOTE: after this, state is updated only using prior,
+    #       it means model doesn't see observation
     rnn_hidden = cem_agent.rnn_hidden
     state = rssm.posterior(rnn_hidden, embedded_obs).sample()
     frame = np.zeros((64, 128, 3))
     frames = []
     for _ in range(args.length):
+        # action is selected same as training time (closed-loop)
         action = cem_agent(obs)
         obs, _, _, _ = env.step(action)
-        action = torch.FloatTensor(action).unsqueeze(0).to(device)
+
+        # update state and reconstruct observation with same action
+        action = torch.FloatTensor(action).to(device).unsqueeze(0)
         with torch.no_grad():
             state_prior, rnn_hidden = rssm.prior(state, action, rnn_hidden)
             state = state_prior.sample()
             predicted_obs = obs_model(state, rnn_hidden)
+
+        # arrange GT frame and predicted frame in parallel
         frame[:, :64, :] = preprocess_obs(obs)
         frame[:, 64:, :] = predicted_obs.squeeze().transpose(0, 1).transpose(1, 2).cpu().numpy()
         frames.append((frame + 0.5).clip(0.0, 1.0))
