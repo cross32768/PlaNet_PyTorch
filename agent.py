@@ -19,25 +19,19 @@ class CEMAgent:
         self.N_top_candidates = N_top_candidates
 
         self.device = next(self.reward_model.parameters()).device
-        self.state_prior = None
-        self.rnn_hidden = None
-        self.reset()
+        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
 
-    def __call__(self, obs=None):
+    def __call__(self, obs):
         # Preprocess observation and transpose for torch style (channel-first)
-        if obs is not None:
-            obs = preprocess_obs(obs)
-            obs = torch.FloatTensor(obs).transpose(1, 2).transpose(0, 1).unsqueeze(0)
-            obs = obs.to(self.device)
+        obs = preprocess_obs(obs)
+        obs = torch.FloatTensor(obs).transpose(1, 2).transpose(0, 1).unsqueeze(0)
+        obs = obs.to(self.device)
 
         with torch.no_grad():
             # Compute starting state for planning
             # while taking information from current observation (posterior)
-            if obs is None:
-                state_dist = self.state_prior
-            else:
-                embedded_obs = self.encoder(obs)
-                state_dist = self.rssm.posterior(self.rnn_hidden, embedded_obs)
+            embedded_obs = self.encoder(obs)
+            state_posterior = self.rssm.posterior(self.rnn_hidden, embedded_obs)
 
             # Initialize action distribution
             action_dist = Normal(torch.zeros(self.horizon, self.rssm.action_dim),
@@ -55,7 +49,7 @@ class CEMAgent:
                 # The size of rnn hidden is (self.N_candidates, rnn_hidden_dim)
                 # These are for parallel exploration
                 total_predicted_reward = torch.zeros(self.N_candidates)
-                state = state_dist.sample([self.N_candidates]).squeeze()
+                state = state_posterior.sample([self.N_candidates]).squeeze()
                 rnn_hidden = self.rnn_hidden.repeat([self.N_candidates, 1])
 
                 # Compute total predicted reward by open-loop prediction using prior
@@ -79,12 +73,10 @@ class CEMAgent:
 
         # update rnn hidden state for next step planning
         with torch.no_grad():
-            self.state_prior, self.rnn_hidden = self.rssm.prior(state_dist.sample(),
-                                                                action.unsqueeze(0),
-                                                                self.rnn_hidden)
+            _, self.rnn_hidden = self.rssm.prior(state_posterior.sample(),
+                                                 action.unsqueeze(0),
+                                                 self.rnn_hidden)
         return action.cpu().numpy()
 
     def reset(self):
-        self.state_prior = Normal(torch.zeros(rssm.state_dim).to(self.device),
-                                  torch.zeros(rssm.state_dim).to(self.device))
-        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
+        self.rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
