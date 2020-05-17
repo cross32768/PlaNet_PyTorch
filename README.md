@@ -7,6 +7,12 @@ For training, install the requirements (see below) and run
 python3 train.py
 ```
 
+To test learned model, run
+```python
+python3 test.py dir
+```
+dir should be log_dir of train.py
+
 ## Requirements
 * Python3
 * Mujoco (for DeepMind Control Suite)
