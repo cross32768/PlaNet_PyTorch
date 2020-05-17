@@ -79,4 +79,4 @@ class CEMAgent:
         return action.cpu().numpy()
 
     def reset(self):
-        self.prev_rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
+        self.prev_rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
