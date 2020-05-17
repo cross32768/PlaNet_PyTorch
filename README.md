@@ -11,6 +11,10 @@ To test learned model, run
 ```python
 python3 test.py dir
 ```
+To predict video with learned model, run
+```python
+python3 video_prediction.py dir
+```
 dir should be log_dir of train.py
 
 ## Requirements
