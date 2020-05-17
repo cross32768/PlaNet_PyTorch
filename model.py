@@ -19,7 +19,7 @@ class Encoder(nn.Module):
         hidden = F.relu(self.cv1(obs))
         hidden = F.relu(self.cv2(hidden))
         hidden = F.relu(self.cv3(hidden))
-        embedded_obs = F.relu(self.cv4(hidden)).view(hidden.size(0), -1)
+        embedded_obs = F.relu(self.cv4(hidden)).reshape(hidden.size(0), -1)
         return embedded_obs
 
 

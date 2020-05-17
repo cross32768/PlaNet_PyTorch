@@ -19,13 +19,13 @@ class CEMAgent:
         self.N_top_candidates = N_top_candidates
 
         self.device = next(self.reward_model.parameters()).device
-        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
+        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim, device=self.device)
 
     def __call__(self, obs):
         # Preprocess observation and transpose for torch style (channel-first)
         obs = preprocess_obs(obs)
-        obs = torch.FloatTensor(obs).transpose(1, 2).transpose(0, 1).unsqueeze(0)
-        obs = obs.to(self.device)
+        obs = torch.FloatTensor(obs).to(self.device)
+        obs = obs.transpose(1, 2).transpose(0, 1).unsqueeze(0)
 
         with torch.no_grad():
             # Compute starting state for planning
@@ -34,21 +34,23 @@ class CEMAgent:
             state_posterior = self.rssm.posterior(self.rnn_hidden, embedded_obs)
 
             # Initialize action distribution
-            action_dist = Normal(torch.zeros(self.horizon, self.rssm.action_dim),
-                                 torch.ones(self.horizon, self.rssm.action_dim))
+            action_dist = Normal(
+                torch.zeros((self.horizon, self.rssm.action_dim), device=self.device),
+                torch.ones((self.horizon, self.rssm.action_dim), device=self.device)
+            )
 
             # Iteratively improve action distribution with CEM
             for itr in range(self.N_iterations):
                 # Sample action candidates and transpose to
                 # (self.horizon, self.N_candidates, action_dim) for parallel exploration
                 action_candidates = \
-                    action_dist.sample([self.N_candidates]).transpose(0, 1).to(self.device)
+                    action_dist.sample([self.N_candidates]).transpose(0, 1)
 
                 # Initialize reward, state, and rnn hidden state
                 # The size of state is (self.N_acndidates, state_dim)
                 # The size of rnn hidden is (self.N_candidates, rnn_hidden_dim)
                 # These are for parallel exploration
-                total_predicted_reward = torch.zeros(self.N_candidates)
+                total_predicted_reward = torch.zeros(self.N_candidates, device=self.device)
                 state = state_posterior.sample([self.N_candidates]).squeeze()
                 rnn_hidden = self.rnn_hidden.repeat([self.N_candidates, 1])
 
@@ -57,7 +59,7 @@ class CEMAgent:
                     next_state_prior, rnn_hidden = \
                         self.rssm.prior(state, action_candidates[t], rnn_hidden)
                     state = next_state_prior.sample()
-                    total_predicted_reward += self.reward_model(state, rnn_hidden).squeeze().cpu()
+                    total_predicted_reward += self.reward_model(state, rnn_hidden).squeeze()
 
                 # update action distribution using top-k samples
                 top_indexes = \
@@ -79,4 +81,4 @@ class CEMAgent:
         return action.cpu().numpy()
 
     def reset(self):
-        self.rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
+        self.rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim, device=self.device)

@@ -121,10 +121,11 @@ def main():
 
             # preprocess observations and transpose tensor for RNN training
             observations = preprocess_obs(observations)
-            observations = torch.FloatTensor(observations).transpose(3, 4).transpose(2, 3)
-            observations = observations.transpose(0, 1).to(device)
-            actions = torch.FloatTensor(actions).transpose(0, 1).to(device)
-            rewards = torch.FloatTensor(rewards).transpose(0, 1).to(device)
+            observations = torch.FloatTensor(observations).to(device)
+            observations = observations.transpose(3, 4).transpose(2, 3)
+            observations = observations.transpose(0, 1)
+            actions = torch.FloatTensor(actions).to(device).transpose(0, 1)
+            rewards = torch.FloatTensor(rewards).to(device).transpose(0, 1)
 
             # embed observations with CNN
             embedded_observations = encoder(
@@ -132,13 +133,13 @@ def main():
 
             # prepare Tensor to maintain states sequence and rnn hidden states sequence
             states = torch.zeros(
-                args.chunk_length, args.batch_size, args.state_dim).to(device)
+                args.chunk_length, args.batch_size, args.state_dim, device=device)
             rnn_hiddens = torch.zeros(
-                args.chunk_length, args.batch_size, args.rnn_hidden_dim).to(device)
+                args.chunk_length, args.batch_size, args.rnn_hidden_dim, device=device)
 
             # initialize state and rnn hidden state with 0 vector
-            state = torch.zeros(args.batch_size, args.state_dim).to(device)
-            rnn_hidden = torch.zeros(args.batch_size, args.rnn_hidden_dim).to(device)
+            state = torch.zeros(args.batch_size, args.state_dim, device=device)
+            rnn_hidden = torch.zeros(args.batch_size, args.rnn_hidden_dim, device=device)
 
             # compute state and rnn hidden sequences and kl loss
             kl_loss = 0
