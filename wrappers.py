@@ -4,7 +4,9 @@ from viewer import OpenCVImageViewer
 
 
 class GymWrapper(object):
-
+    """
+    Gym interface wrapper for dm_control env wrapped by pixels.Wrapper
+    """
     metadata = {'render.modes': ['human', 'rgb_array']}
     reward_range = (-np.inf, np.inf)
 
@@ -55,6 +57,9 @@ class GymWrapper(object):
 
 
 class RepeatAction(gym.Wrapper):
+    """
+    Action repeat wrapper to act same action repeatedly
+    """
     def __init__(self, env, skip=4):
         gym.Wrapper.__init__(self, env)
         self._skip = skip
