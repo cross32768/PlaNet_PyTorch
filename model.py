@@ -43,7 +43,7 @@ class RecurrentStateSpaceModel(nn.Module):
         self.fc_rnn_hidden = nn.Linear(rnn_hidden_dim, hidden_dim)
         self.fc_next_state_mean_prior = nn.Linear(hidden_dim, state_dim)
         self.fc_next_state_stddev_prior = nn.Linear(hidden_dim, state_dim)
-        self.fc_rnn_hidden_next_embedded_obs = nn.Linear(rnn_hidden_dim + 1024, hidden_dim)
+        self.fc_rnn_hidden_embedded_obs = nn.Linear(rnn_hidden_dim + 1024, hidden_dim)
         self.fc_next_state_mean_posterior = nn.Linear(hidden_dim, state_dim)
         self.fc_next_state_stddev_posterior = nn.Linear(hidden_dim, state_dim)
         self.rnn = nn.GRUCell(hidden_dim, rnn_hidden_dim)
@@ -72,12 +72,12 @@ class RecurrentStateSpaceModel(nn.Module):
         stddev = F.softplus(self.fc_next_state_stddev_prior(hidden)) + self._min_stddev
         return Normal(mean, stddev), rnn_hidden
 
-    def posterior(self, rnn_hidden, embedded_next_obs):
+    def posterior(self, rnn_hidden, embedded_obs):
         """
         Compute posterior q(s_t | h_t, o_t)
         """
-        hidden = F.elu(self.fc_rnn_hidden_next_embedded_obs(
-            torch.cat([rnn_hidden, embedded_next_obs], dim=1)))
+        hidden = F.elu(self.fc_rnn_hidden_embedded_obs(
+            torch.cat([rnn_hidden, embedded_obs], dim=1)))
         mean = self.fc_next_state_mean_posterior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden)) + self._min_stddev
         return Normal(mean, stddev)
