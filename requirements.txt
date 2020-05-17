@@ -1,5 +1,6 @@
 dm_control
 gym
 opencv-python
+matplotlib
 numpy
 torch
