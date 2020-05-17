@@ -72,6 +72,8 @@ class RecurrentStateSpaceModel(nn.Module):
     Stochastic state model (prior): p(s_t+1 | h_t+1)
     State posterior: q(s_t | h_t, o_t)
     NOTE: actually, this class takes embedded observation by Encoder class
+    min_stddev is added to stddev same as original implementation
+    Activation function for this class is F.elu same as original implementation
     """
     def __init__(self, state_dim, action_dim, rnn_hidden_dim,
                  hidden_dim=200, min_stddev=0.1):

@@ -2,9 +2,9 @@ import numpy as np
 
 
 class ReplayBuffer(object):
-    '''
+    """
     Replay buffer for training with RNN
-    '''
+    """
     def __init__(self, capacity, observation_shape, action_dim):
         self.capacity = capacity
 
@@ -17,10 +17,10 @@ class ReplayBuffer(object):
         self.is_filled = False
 
     def push(self, observation, action, reward, done):
-        '''
+        """
         Add experience to replay buffer
-        NOTE: observation should be transformed to np.uint8 before addition
-        '''
+        NOTE: observation should be transformed to np.uint8 before push
+        """
         self.observations[self.index] = observation
         self.actions[self.index] = action
         self.rewards[self.index] = reward
@@ -31,12 +31,12 @@ class ReplayBuffer(object):
         self.index = (self.index + 1) % self.capacity
 
     def sample(self, batch_size, chunk_length):
-        '''
+        """
         Sample experiences from replay buffer (almost) uniformly
         The resulting array will be of the form (batch_size, chunk_length)
         and each batch is consecutive sequence
         NOTE: too large chunk_length for the length of episode will cause problems
-        '''
+        """
         episode_borders = np.where(self.done)[0]
         sampled_indexes = []
         for _ in range(batch_size):
@@ -62,8 +62,12 @@ class ReplayBuffer(object):
         return self.capacity if self.is_filled else self.index
 
 
-# Should I add uniform noise?
 def preprocess_obs(obs, bit_depth=5):
+    """
+    Reduces the bit depth of image for the ease of training,
+    and convert to [-0.5, 0.5]
+    In addition, add uniform random noise same as original implementation
+    """
     reduced_obs = np.floor(obs / 2 ** (8 - bit_depth))
     normalized_obs = reduced_obs / 2**bit_depth - 0.5
     normalized_obs += np.random.uniform(0.0, 1.0 / 2**bit_depth, normalized_obs.shape)
