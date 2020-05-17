@@ -1,0 +1,5 @@
+dm_control
+gym
+opencv-python
+numpy
+torch
