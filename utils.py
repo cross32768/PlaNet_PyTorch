@@ -64,7 +64,7 @@ class ReplayBuffer(object):
 
 def preprocess_obs(obs, bit_depth=5):
     """
-    Reduces the bit depth of image for the ease of training,
+    Reduces the bit depth of image for the ease of training
     and convert to [-0.5, 0.5]
     In addition, add uniform random noise same as original implementation
     """

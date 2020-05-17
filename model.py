@@ -23,48 +23,6 @@ class Encoder(nn.Module):
         return embedded_obs
 
 
-class ObservationModel(nn.Module):
-    """
-    p(o_t | s_t, h_t)
-    Observation model to reconstruct image observation (3, 64, 64)
-    from state and rnn hidden state
-    """
-    def __init__(self, state_dim, rnn_hidden_dim):
-        super(ObservationModel, self).__init__()
-        self.fc = nn.Linear(state_dim + rnn_hidden_dim, 1024)
-        self.dc1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
-        self.dc2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
-        self.dc3 = nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2)
-        self.dc4 = nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2)
-
-    def forward(self, state, rnn_hidden):
-        hidden = self.fc(torch.cat([state, rnn_hidden], dim=1))
-        hidden = hidden.view(hidden.size(0), 1024, 1, 1)
-        hidden = F.relu(self.dc1(hidden))
-        hidden = F.relu(self.dc2(hidden))
-        hidden = F.relu(self.dc3(hidden))
-        obs = self.dc4(hidden)
-        return obs
-
-
-class RewardModel(nn.Module):
-    """
-    p(r_t | s_t, h_t)
-    Reward model to predict reward from state and rnn hidden state
-    """
-    def __init__(self, state_dim, rnn_hidden_dim, hidden_dim=200):
-        super(RewardModel, self).__init__()
-        self.fc1 = nn.Linear(state_dim + rnn_hidden_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 1)
-
-    def forward(self, state, rnn_hidden):
-        hidden = F.relu(self.fc1(torch.cat([state, rnn_hidden], dim=1)))
-        hidden = F.relu(self.fc2(hidden))
-        reward = self.fc3(hidden)
-        return reward
-
-
 class RecurrentStateSpaceModel(nn.Module):
     """
     This class includes multiple components
@@ -123,3 +81,45 @@ class RecurrentStateSpaceModel(nn.Module):
         mean = self.fc_next_state_mean_posterior(hidden)
         stddev = F.softplus(self.fc_next_state_stddev_posterior(hidden)) + self._min_stddev
         return Normal(mean, stddev)
+
+
+class ObservationModel(nn.Module):
+    """
+    p(o_t | s_t, h_t)
+    Observation model to reconstruct image observation (3, 64, 64)
+    from state and rnn hidden state
+    """
+    def __init__(self, state_dim, rnn_hidden_dim):
+        super(ObservationModel, self).__init__()
+        self.fc = nn.Linear(state_dim + rnn_hidden_dim, 1024)
+        self.dc1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
+        self.dc2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
+        self.dc3 = nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2)
+        self.dc4 = nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2)
+
+    def forward(self, state, rnn_hidden):
+        hidden = self.fc(torch.cat([state, rnn_hidden], dim=1))
+        hidden = hidden.view(hidden.size(0), 1024, 1, 1)
+        hidden = F.relu(self.dc1(hidden))
+        hidden = F.relu(self.dc2(hidden))
+        hidden = F.relu(self.dc3(hidden))
+        obs = self.dc4(hidden)
+        return obs
+
+
+class RewardModel(nn.Module):
+    """
+    p(r_t | s_t, h_t)
+    Reward model to predict reward from state and rnn hidden state
+    """
+    def __init__(self, state_dim, rnn_hidden_dim, hidden_dim=200):
+        super(RewardModel, self).__init__()
+        self.fc1 = nn.Linear(state_dim + rnn_hidden_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, state, rnn_hidden):
+        hidden = F.relu(self.fc1(torch.cat([state, rnn_hidden], dim=1)))
+        hidden = F.relu(self.fc2(hidden))
+        reward = self.fc3(hidden)
+        return reward
