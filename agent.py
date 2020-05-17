@@ -24,7 +24,7 @@ class CEMAgent:
     def __call__(self, obs):
         # Preprocess observation and transpose for torch style (channel-first)
         obs = preprocess_obs(obs)
-        obs = torch.FloatTensor(obs).to(self.device)
+        obs = torch.as_tensor(obs, device=self.device)
         obs = obs.transpose(1, 2).transpose(0, 1).unsqueeze(0)
 
         with torch.no_grad():

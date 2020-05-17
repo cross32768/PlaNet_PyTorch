@@ -88,7 +88,7 @@ def main():
 
     # preprocess observatin and embed by encoder
     preprocessed_obs = preprocess_obs(obs)
-    preprocessed_obs = torch.FloatTensor(preprocessed_obs).to(device)
+    preprocessed_obs = torch.as_tensor(preprocessed_obs, device=device)
     preprocessed_obs = preprocessed_obs.transpose(1, 2).transpose(0, 1).unsqueeze(0)
     with torch.no_grad():
         embedded_obs = encoder(preprocessed_obs)
@@ -106,7 +106,7 @@ def main():
         obs, _, _, _ = env.step(action)
 
         # update state and reconstruct observation with same action
-        action = torch.FloatTensor(action).to(device).unsqueeze(0)
+        action = torch.as_tensor(action, device=device).unsqueeze(0)
         with torch.no_grad():
             state_prior, rnn_hidden = rssm.prior(state, action, rnn_hidden)
             state = state_prior.sample()

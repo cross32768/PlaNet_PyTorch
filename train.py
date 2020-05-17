@@ -121,11 +121,11 @@ def main():
 
             # preprocess observations and transpose tensor for RNN training
             observations = preprocess_obs(observations)
-            observations = torch.FloatTensor(observations).to(device)
+            observations = torch.as_tensor(observations, device=device)
             observations = observations.transpose(3, 4).transpose(2, 3)
             observations = observations.transpose(0, 1)
-            actions = torch.FloatTensor(actions).to(device).transpose(0, 1)
-            rewards = torch.FloatTensor(rewards).to(device).transpose(0, 1)
+            actions = torch.as_tensor(actions, device=device).transpose(0, 1)
+            rewards = torch.as_tensor(rewards, device=device).transpose(0, 1)
 
             # embed observations with CNN
             embedded_observations = encoder(
