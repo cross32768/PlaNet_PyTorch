@@ -20,7 +20,7 @@ class CEMAgent:
 
         self.device = next(self.reward_model.parameters()).device
         self.state_prior = torch.zeros(1, rssm.state_dim).to(self.device)
-        self.prev_rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
+        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
 
     def __call__(self, obs=None):
         # Preprocess observation and transpose for torch style (channel-first)
@@ -36,7 +36,7 @@ class CEMAgent:
                 state_dist = self.state_prior
             else:
                 embedded_obs = self.encoder(obs)
-                state_dist = self.rssm.posterior(self.prev_rnn_hidden, embedded_obs)
+                state_dist = self.rssm.posterior(self.rnn_hidden, embedded_obs)
 
             # Initialize action distribution
             action_dist = Normal(torch.zeros(self.horizon, self.rssm.action_dim),
@@ -55,7 +55,7 @@ class CEMAgent:
                 # These are for parallel exploration
                 total_predicted_reward = torch.zeros(self.N_candidates)
                 state = state_dist.sample([self.N_candidates]).squeeze()
-                rnn_hidden = self.prev_rnn_hidden.repeat([self.N_candidates, 1])
+                rnn_hidden = self.rnn_hidden.repeat([self.N_candidates, 1])
 
                 # Compute total predicted reward by open-loop prediction using prior
                 for t in range(self.horizon):
@@ -78,10 +78,11 @@ class CEMAgent:
 
         # update rnn hidden state for next step planning
         with torch.no_grad():
-            self.state_prior, self.prev_rnn_hidden = self.rssm.prior(state_dist.sample(),
-                                                                     action.unsqueeze(0),
-                                                                     self.prev_rnn_hidden)
+            self.state_prior, self.rnn_hidden = self.rssm.prior(state_dist.sample(),
+                                                                action.unsqueeze(0),
+                                                                self.rnn_hidden)
         return action.cpu().numpy()
 
     def reset(self):
-        self.prev_rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
+        self.state_prior = torch.zeros(1, self.rssm.state_dim).to(self.device)
+        self.rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
