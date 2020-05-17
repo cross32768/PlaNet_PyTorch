@@ -19,8 +19,9 @@ class CEMAgent:
         self.N_top_candidates = N_top_candidates
 
         self.device = next(self.reward_model.parameters()).device
-        self.state_prior = torch.zeros(1, rssm.state_dim).to(self.device)
-        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
+        self.state_prior = None
+        self.rnn_hidden = None
+        self.reset()
 
     def __call__(self, obs=None):
         # Preprocess observation and transpose for torch style (channel-first)
@@ -84,5 +85,6 @@ class CEMAgent:
         return action.cpu().numpy()
 
     def reset(self):
-        self.state_prior = torch.zeros(1, self.rssm.state_dim).to(self.device)
-        self.rnn_hidden = torch.zeros(1, self.rssm.rnn_hidden_dim).to(self.device)
+        self.state_prior = Normal(torch.zeros(rssm.state_dim).to(self.device),
+                                  torch.zeros(rssm.state_dim).to(self.device))
+        self.rnn_hidden = torch.zeros(1, rssm.rnn_hidden_dim).to(self.device)
