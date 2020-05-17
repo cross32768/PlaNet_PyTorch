@@ -12,7 +12,7 @@ from wrappers import GymWrapper, RepeatAction
 def main():
     parser = argparse.ArgumentParser(description='Test learned model')
     parser.add_argument('dir', type=str, help='log directory to load learned model')
-    parser.add_argument('--render', type=bool, default=True)
+    parser.add_argument('--render', action='store_true')
     parser.add_argument('--domain-name', type=str, default='cheetah')
     parser.add_argument('--task-name', type=str, default='run')
     parser.add_argument('-R', '--action-repeat', type=int, default=4)
