@@ -28,8 +28,6 @@ def main():
     parser.add_argument('-R', '--action-repeat', type=int, default=4)
     parser.add_argument('--state-dim', type=int, default=30)
     parser.add_argument('--rnn-hidden-dim', type=int, default=200)
-    parser.add_argument('--hidden-dim', type=int, default=200)
-    parser.add_argument('--min-stddev', type=float, default=0.1)
     parser.add_argument('--buffer-capacity', type=int, default=1000000)
     parser.add_argument('--all-episodes', type=int, default=1000)
     parser.add_argument('-S', '--seed-episodes', type=int, default=5)
@@ -72,13 +70,11 @@ def main():
     # define models and optimizer
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     encoder = Encoder().to(device)
-    rssm = RecurrentStateSpaceModel(args.state_dim, env.action_space.shape[0],
-                                    args.rnn_hidden_dim, args.hidden_dim,
-                                    args.min_stddev).to(device)
-    obs_model = ObservationModel(
-        args.state_dim, args.rnn_hidden_dim).to(device)
-    reward_model = RewardModel(
-        args.state_dim, args.rnn_hidden_dim, args.hidden_dim).to(device)
+    rssm = RecurrentStateSpaceModel(args.state_dim,
+                                    env.action_space.shape[0],
+                                    args.rnn_hidden_dim).to(device)
+    obs_model = ObservationModel(args.state_dim, args.rnn_hidden_dim).to(device)
+    reward_model = RewardModel(args.state_dim, args.rnn_hidden_dim).to(device)
     all_params = (list(encoder.parameters()) +
                   list(rssm.parameters()) +
                   list(obs_model.parameters()) +
