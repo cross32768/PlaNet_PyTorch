@@ -37,12 +37,11 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     encoder = Encoder().to(device)
-    rssm = RecurrentStateSpaceModel(train_args['state_dim'], env.action_space.shape[0],
-                                    train_args['rnn_hidden_dim'], train_args['hidden_dim'],
-                                    train_args['min_stddev']).to(device)
+    rssm = RecurrentStateSpaceModel(train_args['state_dim'],
+                                    env.action_space.shape[0],
+                                    train_args['rnn_hidden_dim']).to(device)
     reward_model = RewardModel(train_args['state_dim'],
-                               train_args['rnn_hidden_dim'],
-                               train_args['hidden_dim']).to(device)
+                               train_args['rnn_hidden_dim']).to(device)
 
     # load learned parameters
     encoder.load_state_dict(torch.load(os.path.join(args.dir, 'encoder.pth')))
