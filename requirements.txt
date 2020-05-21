@@ -3,4 +3,5 @@ gym
 opencv-python
 matplotlib
 numpy
+tensorboard
 torch
