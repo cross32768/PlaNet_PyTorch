@@ -29,6 +29,6 @@ and see requirements.txt for required python library
 
 
 ## TODO
-* Add results of experiments
-* Add code to fix seed and run controlled experiments
+* speed up training
+* Add results of experiments and video prediction
 * Generalize code for other environments
