@@ -165,9 +165,9 @@ def main():
                 args.chunk_length, args.batch_size, 1)
 
             # compute loss for observation and reward
-            obs_loss = mse_loss(
+            obs_loss = 0.5 * mse_loss(
                 recon_observations[1:], observations[1:], reduction='none').mean([0, 1]).sum()
-            reward_loss = mse_loss(predicted_rewards[1:], rewards[:-1])
+            reward_loss = 0.5 * mse_loss(predicted_rewards[1:], rewards[:-1])
 
             # add all losses and update model parameters with gradient descent
             loss = kl_loss + obs_loss + reward_loss
