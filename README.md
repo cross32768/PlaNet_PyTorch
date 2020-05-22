@@ -30,5 +30,4 @@ and see requirements.txt for required python library
 
 ## TODO
 * Add results of experiments
-* Add code to fix seed and run controlled experiments
 * Generalize code for other environments
