@@ -23,6 +23,15 @@ dir should be log_dir of train.py
 
 and see requirements.txt for required python library
 
+## Qualitative tesult
+Example of predicted video frame by learned model
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/video_prediction.gif)
+
+## Quantitative result
+WIP
+
+Now my GPU is working hard!
+
 ## References
 * [Learning Latent Dynamics for Planning from Pixels](https://arxiv.org/abs/1811.04551)
 * [Official Implementation](https://github.com/google-research/planet)
@@ -30,5 +39,5 @@ and see requirements.txt for required python library
 
 ## TODO
 * speed up training
-* Add results of experiments and video prediction
+* Add quantitative results and more qualitative results
 * Generalize code for other environments
