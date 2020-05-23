@@ -31,7 +31,7 @@ Example of predicted video frame by learned model
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/video_prediction.gif)
 
 ## Quantitative result
-### Cheetah run
+### cheetah run
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/cheetah_run.png)
 
 Work in progress.
