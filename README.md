@@ -34,6 +34,9 @@ Example of predicted video frame by learned model
 ### cheetah run
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/cheetah_run.png)
 
+### walker walk
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/walker_walk.png)
+
 Work in progress.
 
 I'm going to add result of experiments at least three times for each environment in the original paper.
