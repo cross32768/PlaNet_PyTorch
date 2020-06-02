@@ -31,8 +31,20 @@ Example of predicted video frame by learned model
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/video_prediction.gif)
 
 ## Quantitative result
+### cartpole swingup
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/cartpole_swingup.png)
+
+### reacher easy
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/reacher_easy.png)
+
 ### cheetah run
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/cheetah_run.png)
+
+### finger spin
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/finger_spin.png)
+
+### ball_in_cup catch
+![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/ball_in_cup_catch.png)
 
 ### walker walk
 ![](https://github.com/cross32768/PlaNet_PyTorch/blob/master/figures/walker_walk.png)
@@ -41,7 +53,9 @@ Work in progress.
 
 I'm going to add result of experiments at least three times for each environment in the original paper.
 
-Now my GPU is working hard!
+All results are test score (without exploration noise), acquired at every 10 episode.
+
+And I applied moving average with window size=5
 
 ## References
 * [Learning Latent Dynamics for Planning from Pixels](https://arxiv.org/abs/1811.04551)
