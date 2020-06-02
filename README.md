@@ -53,7 +53,7 @@ Work in progress.
 
 I'm going to add result of experiments at least three times for each environment in the original paper.
 
-All results are test score (without exploration noise), acquired at every 10 episode.
+All results are test score (without exploration noise), acquired at every 10 episodes.
 
 And I applied moving average with window size=5
 
@@ -64,5 +64,5 @@ And I applied moving average with window size=5
 
 ## TODO
 * speed up training
-* Add quantitative results and more qualitative results
+* Add more qualitative results (at least 3 experiments for each envifonment with different random seed)
 * Generalize code for other environments
